@@ -19,4 +19,6 @@ $result = file_get_contents($url, false, stream_context_create([
         'content' => json_encode(['text' => $text])
     ]
 ]));
-// $result === 'ok'
+if ($result !== 'ok') {
+    echo "error {$result}";
+}
