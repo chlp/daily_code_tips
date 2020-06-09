@@ -1,5 +1,5 @@
 <?php
-$secret = json_decode(file_get_contents(__DIR__ . '/../../secret.json'), true);
+$secret = @json_decode(file_get_contents(__DIR__ . '/../../secret.json'), true);
 $slackService = $secret['slack_service'] ?? null;
 if ($slackService === null) {
     return;
