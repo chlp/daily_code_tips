@@ -6,6 +6,7 @@ class Slack
     private $botToken;
 
     const EVENT_APP_MENTION = 'app_mention';
+    const EVENT_MESSAGE = 'message';
 
     public function __construct()
     {
@@ -27,6 +28,7 @@ class Slack
         echo @$input['challenge'];
         switch (@$input['event']['type']) {
             case self::EVENT_APP_MENTION:
+            case self::EVENT_MESSAGE:
                 $channel = (string)@$input['event']['channel'];
                 $this->post(
                     $channel,
