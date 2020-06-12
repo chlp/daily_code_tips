@@ -35,7 +35,12 @@ class Slack
 
     public function post(string $channel, string $text)
     {
-        $url = "https://slack.com/api/chat.postMessage?token={$this->botToken}&channel={$channel}&text={$text}";
+        $data = [
+            'token' => $this->botToken,
+            'channel' => $channel,
+            'text' => $text,
+        ];
+        $url = 'https://slack.com/api/chat.postMessage?' . http_build_query($data);;
         file_get_contents($url);
     }
 }
