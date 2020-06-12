@@ -1,4 +1,9 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    echo 'use cli';
+    return;
+}
+
 $secret = @json_decode(file_get_contents(__DIR__ . '/../../secret.json'), true);
 $slackService = $secret['slack_service'] ?? null;
 if ($slackService === null) {
