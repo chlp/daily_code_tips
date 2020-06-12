@@ -5,6 +5,8 @@ class Slack
     private $eventToken;
     private $botToken;
 
+    const EVENT_APP_MENTION = 'app_mention';
+
     public function __construct()
     {
         $secret = @json_decode(file_get_contents(__DIR__ . '/../../secret.json'), true);
@@ -24,9 +26,18 @@ class Slack
         }
         echo @$input['challenge'];
         switch (@$input['event']['type']) {
-            case 'app_mention':
+            case self::EVENT_APP_MENTION:
                 $channel = (string)@$input['event']['channel'];
-                $this->post($channel, "Дратути");
+                $this->post(
+                    $channel,
+                    <<<EOD
+Привет! Я бот ежедневных советов по разработке.
+Добавь меня в канал и я в 9 утра по будням буду слать ровно одно сообщение.
+Поправить или добавить советы можно здесь: https://github.com/chlp/daily_code_tips/blob/master/tips.json
+EOD
+                );
+                break;
+            case 'another_one_event':
                 break;
             default:
                 // not action on event
@@ -40,7 +51,7 @@ class Slack
             'channel' => $channel,
             'text' => $text,
         ];
-        $url = 'https://slack.com/api/chat.postMessage?' . http_build_query($data);;
+        $url = 'https://slack.com/api/chat.postMessage?' . http_build_query($data);
         file_get_contents($url);
     }
 }
