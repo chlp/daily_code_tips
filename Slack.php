@@ -126,7 +126,13 @@ EOD;
         $cursor = '';
         $ignoredConversations = $this->getIgnoredConversations();
         while (true) {
-            $url = self::API_URL_PREFIX . "conversations.list?token={$this->botToken}&limit={$conversationsLimitPerRequest}&exclude_archived=true&cursor={$cursor}";
+            $data = [
+                'token' => $this->botToken,
+                'limit' => $conversationsLimitPerRequest,
+                'exclude_archived' => 'true',
+                'cursor' => $cursor,
+            ];
+            $url = self::API_URL_PREFIX . 'conversations.list?' . http_build_query($data);
             $conversations = @json_decode(file_get_contents($url), true);
             if (!is_array($conversations) || !$conversations['ok']) {
                 return [];
