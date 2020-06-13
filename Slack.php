@@ -41,14 +41,14 @@ class Slack
                 }
                 $channel = (string)@$input['event']['channel'];
                 $text = (string)@$input['event']['text'];
-                if (strpos($text, '> del')) {
-                    if ($this->delIgnoredConversation($channel)) {
+                if (strpos($text, '> del')) { // удалить канал из рассылки
+                    if ($this->addIgnoredConversation($channel)) {
                         $responseText = 'Ок, я пока перестану присылать советы в этот канал 😥. Напиши мне "add", чтобы я возобновил.';
                     } else {
                         $responseText = 'Я уже не понял, что не нужно пока сюда слать советы. Напиши мне "add", чтобы я возобновил.';
                     }
-                } else if (strpos($text, '> add')) {
-                    if ($this->addIgnoredConversation($channel)) {
+                } else if (strpos($text, '> add')) { // добавить канал в рассылку
+                    if ($this->delIgnoredConversation($channel)) {
                         $responseText = 'Ура! Я снова буду присылать советы в этот канал 🥳.';
                     } else {
                         $responseText = 'Ага, я уже запланировал отправку советов сюда 🥳.';
@@ -87,6 +87,7 @@ EOD;
     }
 
     /**
+     * Начать игнорировать канал
      * @param string $channelId
      * @return bool
      */
@@ -102,13 +103,14 @@ EOD;
     }
 
     /**
+     * Удалить канал из игнорируемых
      * @param string $channelId
      * @return bool
      */
     private function delIgnoredConversation(string $channelId): bool
     {
         $conversations = $this->getIgnoredConversations();
-        if (in_array($channelId, $conversations, true)) {
+        if (!in_array($channelId, $conversations, true)) {
             return false;
         }
         $conversations = array_diff($conversations, [$channelId]);
