@@ -16,10 +16,6 @@ class Slack
     public function __construct()
     {
         $secret = @json_decode(file_get_contents(self::SECRET_CONFIG_FILE), true);
-        $slackService = $secret['slack_service'] ?? null;
-        if ($slackService === null) {
-            return;
-        }
         $this->botToken = $secret['slack_bot_token'];
         $this->eventToken = $secret['slack_event_token'];
     }
