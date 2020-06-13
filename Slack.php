@@ -10,9 +10,12 @@ class Slack
 
     private const API_URL_PREFIX = 'https://slack.com/api/';
 
+    private const SECRET_CONFIG_FILE = __DIR__ . '/../../secret.json';
+    private const IGNORED_CONVERSATIONS_FILE = __DIR__ . '/ignoredConversations.json';
+
     public function __construct()
     {
-        $secret = @json_decode(file_get_contents(__DIR__ . '/../../secret.json'), true);
+        $secret = @json_decode(file_get_contents(self::SECRET_CONFIG_FILE), true);
         $slackService = $secret['slack_service'] ?? null;
         if ($slackService === null) {
             return;
@@ -21,7 +24,7 @@ class Slack
         $this->eventToken = $secret['slack_event_token'];
     }
 
-    public function event(array $input)
+    public function handleEvent(array $input): void
     {
         file_put_contents(__DIR__ . '/events/' . time() . '.txt', json_encode([$input]));
         if ($this->eventToken !== @$input['token']) {
@@ -37,14 +40,31 @@ class Slack
                     return;
                 }
                 $channel = (string)@$input['event']['channel'];
-                $this->post(
-                    $channel,
-                    <<<EOD
+                $text = (string)@$input['event']['text'];
+                if (strpos($text, '> del')) {
+                    if ($this->delIgnoredConversation($channel)) {
+                        $responseText = 'Ок, я пока перестану присылать советы в этот канал 😥. Напиши мне "add", чтобы я возобновил.';
+                    } else {
+                        $responseText = 'Я уже не понял, что не нужно пока сюда слать советы. Напиши мне "add", чтобы я возобновил.';
+                    }
+                } else if (strpos($text, '> add')) {
+                    if ($this->addIgnoredConversation($channel)) {
+                        $responseText = 'Ура! Я снова буду присылать советы в этот канал 🥳.';
+                    } else {
+                        $responseText = 'Ага, я уже запланировал отправку советов сюда 🥳.';
+                    }
+                } else {
+                    $responseText = <<<EOD
 Привет 👋
 Я бот 🤖 ежедневных советов по разработке.
 Добавь меня в канал и каждый будний день в 9 утра буду присылать очередной совет 🤓.
 Поправить или добавить советы можно здесь: https://github.com/chlp/daily_code_tips/blob/master/tips.json
-EOD
+Я перестану слать в этот канал сообщения, если мне написать "del". И по команде "add" снова начну. 
+EOD;
+                }
+                $this->post(
+                    $channel,
+                    $responseText
                 );
                 break;
             case 'another_one_event':
@@ -52,6 +72,48 @@ EOD
             default:
                 // not action on event
         }
+    }
+
+    /**
+     * @return array
+     */
+    private function getIgnoredConversations(): array
+    {
+        $conversationsId = @json_decode(file_get_contents(self::IGNORED_CONVERSATIONS_FILE), true);
+        if (is_array($conversationsId)) {
+            return $conversationsId;
+        }
+        return [];
+    }
+
+    /**
+     * @param string $channelId
+     * @return bool
+     */
+    private function addIgnoredConversation(string $channelId): bool
+    {
+        $conversations = $this->getIgnoredConversations();
+        if (in_array($channelId, $conversations, true)) {
+            return false;
+        }
+        $conversations[] = $channelId;
+        file_put_contents(self::IGNORED_CONVERSATIONS_FILE, json_encode($conversations));
+        return true;
+    }
+
+    /**
+     * @param string $channelId
+     * @return bool
+     */
+    private function delIgnoredConversation(string $channelId): bool
+    {
+        $conversations = $this->getIgnoredConversations();
+        if (in_array($channelId, $conversations, true)) {
+            return false;
+        }
+        $conversations = array_diff($conversations, [$channelId]);
+        file_put_contents(self::IGNORED_CONVERSATIONS_FILE, json_encode($conversations));
+        return true;
     }
 
     /**
@@ -64,6 +126,7 @@ EOD
         $maxIterations = 10;
         $conversationsLimitPerRequest = 1000;
         $cursor = '';
+        $ignoredConversations = $this->getIgnoredConversations();
         while (true) {
             $url = self::API_URL_PREFIX . "conversations.list?token={$this->botToken}&limit={$conversationsLimitPerRequest}&exclude_archived=true&cursor={$cursor}";
             $conversations = @json_decode(file_get_contents($url), true);
@@ -71,7 +134,11 @@ EOD
                 return [];
             }
             foreach ($conversations['channels'] as $channel) {
-                if (@$channel['is_member'] && is_string($channel['id'])) {
+                if (
+                    @$channel['is_member'] &&
+                    is_string($channel['id']) &&
+                    !in_array($channel['id'], $ignoredConversations, true)
+                ) {
                     $conversationsId[] = $channel['id'];
                 }
             }

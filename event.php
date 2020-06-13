@@ -6,6 +6,6 @@ if (!is_array($input)) {
     return;
 }
 
-file_put_contents(__DIR__ . '/events/' . time() . '.txt', json_encode([$input]));
+file_put_contents(__DIR__ . '/events/' . time() . '.txt', json_encode($input));
 
-(new Slack())->event($input);
+(new Slack())->handleEvent($input);
