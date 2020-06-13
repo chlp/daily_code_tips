@@ -56,7 +56,7 @@ EOD
     /**
      * @return string[]
      */
-    private function getAppConversations(): array
+    public function getAppConversations(): array
     {
         $conversationsId = [];
         $iteration = 0;

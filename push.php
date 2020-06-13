@@ -4,26 +4,18 @@ if (PHP_SAPI !== 'cli') {
     return;
 }
 
-$secret = @json_decode(file_get_contents(__DIR__ . '/../../secret.json'), true);
-$slackService = $secret['slack_service'] ?? null;
-if ($slackService === null) {
+require_once __DIR__ . '/DailyTip.php';
+require_once __DIR__ . '/Slack.php';
+
+$input = @json_decode(file_get_contents('php://input'), true);
+if (!is_array($input)) {
     return;
 }
-$tips = json_decode(file_get_contents(__DIR__ . '/tips.json'), true);
-$tip = $tips[array_rand($tips)];
-$text = "*{$tip['title']}*\r\n";
-foreach ($tip['points'] as $point) {
-    $text .= "* {$point}\r\n";
-}
-$text .= "_{$tip['link']}_";
-$url = 'https://hooks.slack.com/services/' . $slackService;
-$result = file_get_contents($url, false, stream_context_create([
-    'http' => [
-        'method' => 'POST',
-        'header' => 'Content-type: application/json',
-        'content' => json_encode(['text' => $text])
-    ]
-]));
-if ($result !== 'ok') {
-    echo "error {$result}";
+
+file_put_contents(__DIR__ . '/events/' . time() . '.txt', json_encode([$input]));
+
+$todayTip = (new DailyTip())->getRandomText();
+$slack = new Slack();
+foreach ($slack->getAppConversations() as $conversationId) {
+    $slack->post($conversationId, $todayTip);
 }
