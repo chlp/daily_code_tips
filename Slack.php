@@ -37,19 +37,19 @@ class Slack
                 }
                 $channel = (string)@$input['event']['channel'];
                 $text = (string)@$input['event']['text'];
-                if (strpos($text, '> del')) { // удалить канал из рассылки
+                if (strpos($text, 'del') !== false) { // удалить канал из рассылки
                     if ($this->addIgnoredConversation($channel)) {
                         $responseText = 'Ок, я пока перестану присылать советы в этот канал 😥. Напиши мне "add", чтобы я возобновил.';
                     } else {
                         $responseText = 'Я уже понял, что не нужно пока сюда слать советы. Напиши мне "add", чтобы я возобновил.';
                     }
-                } else if (strpos($text, '> add')) { // добавить канал в рассылку
+                } else if (strpos($text, 'add') !== false) { // добавить канал в рассылку
                     if ($this->delIgnoredConversation($channel)) {
                         $responseText = 'Ура! Я снова буду присылать советы в этот канал 🥳.';
                     } else {
                         $responseText = 'Ага, я уже запланировал отправку советов сюда 🥳.';
                     }
-                } else if (strpos($text, '> more')) { // кинуть цитату
+                } else if (strpos($text, 'more') !== false) { // кинуть цитату
                     $responseText = (new DailyTip())->getRandomText();
                 } else {
                     $responseText = <<<EOD
