@@ -128,6 +128,7 @@ EOD;
         while (true) {
             $data = [
                 'token' => $this->botToken,
+                'types' => 'public_channel,private_channel',
                 'limit' => $conversationsLimitPerRequest,
                 'exclude_archived' => 'true',
                 'cursor' => $cursor,
