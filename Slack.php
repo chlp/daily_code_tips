@@ -29,6 +29,9 @@ class Slack
         switch (@$input['event']['type']) {
             case self::EVENT_APP_MENTION:
             case self::EVENT_MESSAGE:
+                if (@(string)@$input['event']['client_msg_id'] === '') {
+                    return;
+                }
                 $channel = (string)@$input['event']['channel'];
                 $this->post(
                     $channel,
