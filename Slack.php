@@ -5,8 +5,10 @@ class Slack
     private $eventToken;
     private $botToken;
 
-    const EVENT_APP_MENTION = 'app_mention';
-    const EVENT_MESSAGE = 'message';
+    private const EVENT_APP_MENTION = 'app_mention';
+    private const EVENT_MESSAGE = 'message';
+
+    private const API_URL_PREFIX = 'https://slack.com/api/';
 
     public function __construct()
     {
@@ -30,6 +32,8 @@ class Slack
             case self::EVENT_APP_MENTION:
             case self::EVENT_MESSAGE:
                 if (@(string)@$input['event']['client_msg_id'] === '') {
+                    // будем реагировать только на то, что люди пишут
+                    // если убрать, то будем реагировать на свои собственные сообщения и будет бесконечный цикл
                     return;
                 }
                 $channel = (string)@$input['event']['channel'];
@@ -49,14 +53,43 @@ EOD
         }
     }
 
-    public function post(string $channel, string $text)
+    /**
+     * @return string[]
+     */
+    private function getAppConversations(): array
+    {
+        $conversationsId = [];
+        $iteration = 0;
+        $maxIterations = 10;
+        $conversationsLimitPerRequest = 1000;
+        $cursor = '';
+        while (true) {
+            $url = self::API_URL_PREFIX . "conversations.list?token={$this->botToken}&limit={$conversationsLimitPerRequest}&exclude_archived=true&cursor={$cursor}";
+            $conversations = @json_decode(file_get_contents($url), true);
+            if (!is_array($conversations) || !$conversations['ok']) {
+                return [];
+            }
+            foreach ($conversations['channels'] as $channel) {
+                if (@$channel['is_member'] && is_string($channel['id'])) {
+                    $conversationsId[] = $channel['id'];
+                }
+            }
+            $cursor = (string)@$conversations['response_metadata']['next_cursor'];
+            if (++$iteration >= $maxIterations || $cursor === '') {
+                break;
+            }
+        }
+        return $conversationsId;
+    }
+
+    public function post(string $channel, string $text): void
     {
         $data = [
             'token' => $this->botToken,
             'channel' => $channel,
             'text' => $text,
         ];
-        $url = 'https://slack.com/api/chat.postMessage?' . http_build_query($data);
+        $url = self::API_URL_PREFIX . 'chat.postMessage?' . http_build_query($data);
         file_get_contents($url);
     }
 }
